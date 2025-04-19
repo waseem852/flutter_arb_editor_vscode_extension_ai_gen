@@ -1,7 +1,9 @@
+import * as fs from 'fs-extra';
+import * as path from 'path';
 import * as vscode from 'vscode';
 import { ArbFile } from '../models/arbModels';
 import { ArbFilesProvider } from '../providers/arbFilesProvider';
-import { ExcelExporter, ExcelImporter, I18nGenerator } from '../utils/arbFileUtils';
+import { ExcelExporter, ExcelImporter } from '../utils/arbFileUtils';
 import { ArbEditorPanel } from '../views/arbEditorPanel';
 
 /**
@@ -169,9 +171,8 @@ export class CommandHandlers {
       vscode.window.showErrorMessage(`Failed to import from Excel: ${error}`);
     }
   }
-
   /**
-   * Generate i18n code from ARB files
+   * Generate i18n code using Flutter's built-in localization code generation
    */
   private async generateI18n(args?: { arbFiles?: ArbFile[] }): Promise<void> {
     try {
@@ -187,16 +188,96 @@ export class CommandHandlers {
         return;
       }
 
-      // Generate i18n code
-      const outputPath = await I18nGenerator.generateI18nCode(arbFiles);
+      // Get the Flutter project root (parent directory of the first ARB file)
+      const projectRoot = path.dirname(path.dirname(arbFiles[0].uri));
 
-      if (outputPath) {
-        vscode.window.showInformationMessage(`Successfully generated i18n code at ${outputPath}`);
-        
-        // Open the generated file
-        const document = await vscode.workspace.openTextDocument(outputPath);
-        await vscode.window.showTextDocument(document);
+      // Check if this is a Flutter project by looking for pubspec.yaml
+      const pubspecPath = path.join(projectRoot, 'pubspec.yaml');
+      if (!await fs.pathExists(pubspecPath)) {
+        vscode.window.showErrorMessage('Could not find pubspec.yaml. Please ensure you are in a Flutter project.');
+        return;
+      }      // Read pubspec.yaml to check/update flutter_localizations dependency
+      const pubspecContent = await fs.readFile(pubspecPath, 'utf8');
+      
+      // Create terminal in the project directory
+      const terminal = vscode.window.createTerminal({
+        name: 'Flutter l10n',
+        cwd: projectRoot
+      });
+      
+      terminal.show();
+        // Add flutter_localizations if not already present
+      if (!pubspecContent.includes('flutter_localizations:')) {
+        await vscode.window.withProgress({
+          location: vscode.ProgressLocation.Notification,
+          title: 'Adding flutter_localizations dependency...',
+          cancellable: false
+        }, async () => {
+          // Run the command using PowerShell in the project directory
+          const result = await new Promise<void>((resolve) => {
+            terminal.sendText('flutter pub add flutter_localizations --sdk=flutter; if ($?) { Write-Host "DONE" }');
+            
+            const disposable = vscode.window.onDidCloseTerminal(closedTerminal => {
+              if (closedTerminal === terminal) {
+                disposable.dispose();
+                resolve();
+              }
+            });
+          });
+        });
       }
+      
+      // Update l10n configuration in pubspec.yaml if needed
+      if (!pubspecContent.includes('generate: true')) {
+        const l10nConfig = `
+flutter:
+  generate: true # Add this line
+  uses-material-design: true`;
+        
+        try {
+          const updatedContent = pubspecContent.includes('flutter:') 
+            ? pubspecContent.replace(/flutter:([^\n]*\n(?:[ \t]+[^\n]+\n)*)/m, l10nConfig)
+            : pubspecContent + '\n' + l10nConfig;
+            
+          await fs.writeFile(pubspecPath, updatedContent);
+        } catch (error) {
+          vscode.window.showErrorMessage(`Failed to update pubspec.yaml: ${error}`);
+          return;
+        }
+      }
+      
+      // Create l10n.yaml if it doesn't exist
+      const l10nConfigPath = path.join(projectRoot, 'l10n.yaml');
+      if (!await fs.pathExists(l10nConfigPath)) {
+        const l10nConfig = `
+arb-dir: ${path.relative(projectRoot, path.dirname(arbFiles[0].uri))}
+template-arb-file: ${path.basename(arbFiles[0].uri)}
+output-localization-file: app_localizations.dart
+output-class: AppLocalizations
+`;
+        await fs.writeFile(l10nConfigPath, l10nConfig.trim());
+      }
+      
+      // Run flutter gen-l10n
+      await vscode.window.withProgress({
+        location: vscode.ProgressLocation.Notification,
+        title: 'Generating Flutter localizations...',
+        cancellable: false
+      }, async () => {
+        await new Promise<void>((resolve) => {
+          // Run the command using PowerShell and wait for completion
+          terminal.sendText('flutter gen-l10n; if ($?) { Write-Host "DONE" }');
+          
+          const disposable = vscode.window.onDidCloseTerminal(closedTerminal => {
+            if (closedTerminal === terminal) {
+              disposable.dispose();
+              resolve();
+            }
+          });
+        });
+      });
+      
+      vscode.window.showInformationMessage('Flutter localizations generated successfully.');
     } catch (error) {
       vscode.window.showErrorMessage(`Failed to generate i18n code: ${error}`);
     }
