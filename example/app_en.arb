@@ -1,0 +1,31 @@
+{
+  "@@locale": "en",
+  "appTitle": "Flutter Demo",
+  "@appTitle": {
+    "description": "The title of the application"
+  },
+  "helloWorld": "Hello World!",
+  "@helloWorld": {
+    "description": "A greeting message"
+  },
+  "welcomeMessage": "Welcome to our app, {name}!",
+  "@welcomeMessage": {
+    "description": "A welcome message with a name parameter",
+    "placeholders": {
+      "name": {
+        "type": "String",
+        "example": "John"
+      }
+    }
+  },
+  "itemCount": "You have {count} items",
+  "@itemCount": {
+    "description": "The number of items",
+    "placeholders": {
+      "count": {
+        "type": "int",
+        "example": "5"
+      }
+    }
+  }
+}

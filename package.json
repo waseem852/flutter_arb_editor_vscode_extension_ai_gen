@@ -1,0 +1,172 @@
+{
+  "name": "flutter-arb-editor",
+  "displayName": "Flutter ARB Editor",
+  "description": "Manage Flutter ARB files with a visual editor, export/import to Excel, and automatic i18n generation",
+  "version": "0.0.1",
+  "engines": {
+    "vscode": "^1.99.0"
+  },
+  "categories": [
+    "Other"
+  ],
+  "activationEvents": [],
+  "main": "./dist/extension.js",
+  "contributes": {
+    "commands": [
+      {
+        "command": "flutter-arb-editor.openArbEditor",
+        "title": "Open ARB Editor",
+        "category": "Flutter ARB Editor"
+      },
+      {
+        "command": "flutter-arb-editor.refreshArbFiles",
+        "title": "Refresh ARB Files",
+        "category": "Flutter ARB Editor",
+        "icon": "$(refresh)"
+      },
+      {
+        "command": "flutter-arb-editor.exportToExcel",
+        "title": "Export to Excel",
+        "category": "Flutter ARB Editor"
+      },
+      {
+        "command": "flutter-arb-editor.importFromExcel",
+        "title": "Import from Excel",
+        "category": "Flutter ARB Editor"
+      },
+      {
+        "command": "flutter-arb-editor.generateI18n",
+        "title": "Generate i18n Code",
+        "category": "Flutter ARB Editor"
+      },
+      {
+        "command": "flutter-arb-editor.addNewTranslation",
+        "title": "Add New Translation",
+        "category": "Flutter ARB Editor",
+        "icon": "$(add)"
+      }
+    ],
+    "views": {
+      "explorer": [
+        {
+          "id": "flutter-arb-explorer",
+          "name": "Flutter ARB Files"
+        }
+      ]
+    },
+    "viewsWelcome": [
+      {
+        "view": "flutter-arb-explorer",
+        "contents": "No ARB files found in this workspace.\n[Learn more about Flutter localization](https://docs.flutter.dev/ui/accessibility-and-localization/internationalization)"
+      }
+    ],
+    "menus": {
+      "view/title": [
+        {
+          "command": "flutter-arb-editor.refreshArbFiles",
+          "when": "view == flutter-arb-explorer",
+          "group": "navigation"
+        },
+        {
+          "command": "flutter-arb-editor.addNewTranslation",
+          "when": "view == flutter-arb-explorer",
+          "group": "navigation"
+        }
+      ],
+      "view/item/context": [
+        {
+          "command": "flutter-arb-editor.openArbEditor",
+          "when": "viewItem == arbFile",
+          "group": "inline"
+        },
+        {
+          "command": "flutter-arb-editor.exportToExcel",
+          "when": "viewItem == arbFile || viewItem == arbFolder",
+          "group": "arbActions@1"
+        },
+        {
+          "command": "flutter-arb-editor.importFromExcel",
+          "when": "viewItem == arbFile || viewItem == arbFolder",
+          "group": "arbActions@2"
+        },
+        {
+          "command": "flutter-arb-editor.generateI18n",
+          "when": "viewItem == arbFolder",
+          "group": "arbActions@3"
+        }
+      ],
+      "explorer/context": [
+        {
+          "command": "flutter-arb-editor.openArbEditor",
+          "when": "resourceExtname == .arb",
+          "group": "arbEditorGroup@1"
+        }
+      ],
+      "editor/title": [
+        {
+          "command": "flutter-arb-editor.openArbEditor",
+          "when": "resourceExtname == .arb",
+          "group": "navigation"
+        }
+      ]
+    },
+    "configuration": {
+      "title": "Flutter ARB Editor",
+      "properties": {
+        "flutterArbEditor.autoDetectArbFiles": {
+          "type": "boolean",
+          "default": true,
+          "description": "Automatically detect ARB files in the workspace"
+        },
+        "flutterArbEditor.arbFilesPattern": {
+          "type": "string",
+          "default": "**/l10n/**/*.arb",
+          "description": "Glob pattern to search for ARB files"
+        },
+        "flutterArbEditor.showTreeView": {
+          "type": "boolean",
+          "default": true,
+          "description": "Show ARB files in a tree view"
+        },
+        "flutterArbEditor.defaultI18nOutputDir": {
+          "type": "string",
+          "default": "lib/generated",
+          "description": "Default output directory for generated i18n code"
+        }
+      }
+    }
+  },
+  "scripts": {
+    "vscode:prepublish": "npm run package",
+    "compile": "npm run check-types && npm run lint && node esbuild.js",
+    "watch": "npm-run-all -p watch:*",
+    "watch:esbuild": "node esbuild.js --watch",
+    "watch:tsc": "tsc --noEmit --watch --project tsconfig.json",
+    "package": "npm run check-types && npm run lint && node esbuild.js --production",
+    "compile-tests": "tsc -p . --outDir out",
+    "watch-tests": "tsc -p . -w --outDir out",
+    "pretest": "npm run compile-tests && npm run compile && npm run lint",
+    "check-types": "tsc --noEmit",
+    "lint": "eslint src",
+    "test": "vscode-test"
+  },
+  "devDependencies": {
+    "@types/mocha": "^10.0.10",
+    "@types/node": "20.x",
+    "@types/vscode": "^1.99.0",
+    "@typescript-eslint/eslint-plugin": "^8.28.0",
+    "@typescript-eslint/parser": "^8.28.0",
+    "@vscode/test-cli": "^0.0.10",
+    "@vscode/test-electron": "^2.4.1",
+    "esbuild": "^0.25.1",
+    "eslint": "^9.23.0",
+    "npm-run-all": "^4.1.5",
+    "typescript": "^5.8.2"
+  },
+  "dependencies": {
+    "@types/fs-extra": "^11.0.4",
+    "@types/xlsx": "^0.0.35",
+    "fs-extra": "^11.3.0",
+    "xlsx": "^0.18.5"
+  }
+}
